@@ -1,5 +1,7 @@
 #!/bin/sh
-curl 'https://oga-gold.org.uk/login.php?operation=logout' \
+echo $USER
+echo $PASS
+curl -v 'https://oga-gold.org.uk/login.php?operation=logout' \
   -H 'authority: oga-gold.org.uk' \
   -H 'origin: https://oga-gold.org.uk' \
   -H 'content-type: application/x-www-form-urlencoded' \
@@ -17,3 +19,4 @@ curl 'https://oga-gold.org.uk/members.php?operation=ecsv' \
   -H 'authority: oga-gold.org.uk' \
   --compressed \
   --output $1
+cat $1
