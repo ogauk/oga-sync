@@ -277,6 +277,7 @@ with open(sys.argv[1], newline='') as csvfile:
   members = csv.DictReader(csvfile)
   memberships = {}
   for member in members:
+    print(member)
     if member['Area'] not in json.loads(os.environ.get('EXCLUDE')):
       if member['GDPR'] == 'false' or member['Status'] == 'Left OGA':
         archive_member(list, member)
