@@ -160,8 +160,6 @@ def same(old, new):
   if json.dumps(old, sort_keys=True) == json.dumps(new, sort_keys=True):
     return True
   print('changed')
-  print(json.dumps(old, sort_keys=True))
-  print(json.dumps(new, sort_keys=True))
   return False
 
 def same_interests(complete, partial):
@@ -251,7 +249,6 @@ def upsert(list, member):
 def getlistid(name):
   r = client.lists.get_all_lists()
   for l in r['lists']:
-    print(l)
     if l['name'] == name:
       return l['id']
 
@@ -271,7 +268,6 @@ try:
     response = client.lists.list_interest_category_interests(list, category['id'])
     group = {}
     for interest in response['interests']:
-      #print(interest['name'])
       group[interest['name']] = interest['id']
     audience_data[category['title']] = group
 except ApiClientError as error:

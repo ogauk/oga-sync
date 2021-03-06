@@ -16,4 +16,4 @@ curl 'https://oga-gold.org.uk/members.php?operation=ecsv' \
   --cookie gold \
   -H 'authority: oga-gold.org.uk' \
   --compressed \
-  --output Members.csv
+  --output $1

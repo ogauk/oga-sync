@@ -1,7 +1,5 @@
 #!/bin/sh
-bin/getmembers
-echo $PWD
-ls
+bin/getmembers Members.csv
 python3 bin/update.py Members.csv
 rm Members.csv
 rm gold
