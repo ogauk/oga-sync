@@ -1,0 +1,22 @@
+#!/bin/sh
+USER=`jq -r .gold.username .env.json`
+PASS=`jq -r .gold.password .env.json`
+echo $USER $PASS
+curl 'https://oga-gold.org.uk/login.php?operation=logout' \
+  -H 'authority: oga-gold.org.uk' \
+  -H 'origin: https://oga-gold.org.uk' \
+  -H 'content-type: application/x-www-form-urlencoded' \
+  --data "username=$USER&password=$PASS" \
+  --cookie-jar gold \
+  --output /dev/null
+curl 'https://oga-gold.org.uk/members.php?quick_filter=&quick_filter_operator=Contains' \
+  --cookie gold \
+  -H 'authority: oga-gold.org.uk' \
+  -H 'referer: https://oga-gold.org.uk/members.php' \
+  --compressed \
+  --output /dev/null
+curl 'https://oga-gold.org.uk/members.php?operation=ecsv' \
+  --cookie gold \
+  -H 'authority: oga-gold.org.uk' \
+  --compressed \
+  --output Members.csv

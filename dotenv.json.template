@@ -1,0 +1,14 @@
+{
+  "gold": {
+    "username": "Old Gaffer",
+    "password": "stockholm tar" 
+  },
+  "mailchimp": { 
+    "audience": "OGA Members from GOLD",
+    "api_key": "<FROM MailChimp>",
+    "server": "<FROM MailChimp>"
+   },
+   "sync": {
+     "exclude": ["East Coast", "Solent", "South West"]
+   }
+}
