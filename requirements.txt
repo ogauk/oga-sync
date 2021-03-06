@@ -1,4 +1,3 @@
-csv
 hashlib
 json
 iso3166
