@@ -1,0 +1,3 @@
+#!/bin/sh
+./getmembers
+python3 update.py Members.csv

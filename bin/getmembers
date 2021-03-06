@@ -1,7 +1,4 @@
 #!/bin/sh
-USER=`jq -r .gold.username .env.json`
-PASS=`jq -r .gold.password .env.json`
-echo $USER $PASS
 curl 'https://oga-gold.org.uk/login.php?operation=logout' \
   -H 'authority: oga-gold.org.uk' \
   -H 'origin: https://oga-gold.org.uk' \
