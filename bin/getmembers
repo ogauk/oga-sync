@@ -8,13 +8,13 @@ curl -v 'https://oga-gold.org.uk/login.php?operation=logout' \
   --data "username=$USER&password=$PASS" \
   --cookie-jar gold \
   --output /dev/null
-curl 'https://oga-gold.org.uk/members.php?quick_filter=&quick_filter_operator=Contains' \
+curl -v 'https://oga-gold.org.uk/members.php?quick_filter=&quick_filter_operator=Contains' \
   --cookie gold \
   -H 'authority: oga-gold.org.uk' \
   -H 'referer: https://oga-gold.org.uk/members.php' \
   --compressed \
   --output /dev/null
-curl 'https://oga-gold.org.uk/members.php?operation=ecsv' \
+curl -v 'https://oga-gold.org.uk/members.php?operation=ecsv' \
   --cookie gold \
   -H 'authority: oga-gold.org.uk' \
   --compressed \
