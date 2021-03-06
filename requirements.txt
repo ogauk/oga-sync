@@ -1,0 +1,7 @@
+sys
+csv
+hashlib
+json
+iso3166
+mailchimp_marketing 
+mailchimp_marketing.api_client 
