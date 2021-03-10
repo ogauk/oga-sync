@@ -183,12 +183,8 @@ def same_permissions(old, new):
 
 def has_changed(old, new):
   if same(old['merge_fields'], new['merge_fields']) == False:
-    print(old['merge_fields'])
-    print(new['merge_fields'])
     return True
   if same_interests(old['interests'], new['interests']) == False:
-    print(old['interests'])
-    print(new['interests'])
     return True
   #if same_permissions(old['marketing_permissions'], new['marketing_permissions']) == False:
   #  print(old['marketing_permissions'])
