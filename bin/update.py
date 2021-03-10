@@ -116,7 +116,7 @@ def build_data(member):
       merge_fields['REASON'] = ''
     addAddress(merge_fields, member),
     addJoined(merge_fields, member),
-    gdpr = True # TODO more fine grained
+    gdpr = member['GDPR'] == 'true' # TODO more fine grained
     return {
       "status": "subscribed",
       "merge_fields": merge_fields,
@@ -130,6 +130,7 @@ def build_data(member):
 
 
 def add(list, email, member):
+  print('add', email)
   data = build_data(member)
   data['email_address'] = email
   try:
@@ -214,7 +215,6 @@ def simple_upsert(list, email, member):
     response = client.lists.get_list_member(list, hash)
     update(list, hash, member, response)
   except ApiClientError as error:
-    print('not found', email)
     add(list, email, member)
 
 def archive(list, email):
@@ -274,7 +274,8 @@ with open(sys.argv[1], newline='') as csvfile:
   memberships = {}
   for member in members:
     if member['Area'] not in json.loads(os.environ.get('EXCLUDE')):
-      if member['GDPR'] == 'false' or member['Status'] == 'Left OGA':
+      #if member['GDPR'] == 'false' or member['Status'] == 'Left OGA':
+      if member['Status'] == 'Left OGA':
         archive_member(list, member)
       else:
         number = member['Member Number']
