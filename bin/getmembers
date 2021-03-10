@@ -19,4 +19,3 @@ curl -v 'https://oga-gold.org.uk/members.php?operation=ecsv' \
   -H 'authority: oga-gold.org.uk' \
   --compressed \
   --output $1
-cat $1
