@@ -40,6 +40,11 @@ def address(member):
     if len(x)==2 and x[0].isnumeric():
       r['zip'] = x[0]
       r['city'] = x[1]
+  elif member['County'] == '' and member['Country'] == 'USA':
+    x = member['Postcode'].split(' ')
+    if len(x)==2:
+      r['state'] = x[0]
+      r['zip'] = x[1]
   return r
 
 def addAddress(merge_fields, member):
@@ -195,6 +200,7 @@ def has_changed(old, new):
 
 def update(list, hash, member, old):
   data = build_data(member)
+  om = old['merge_fields']
   if has_changed(old, data) == False:
     if member['Email'] != '':
       print('no change to ', member['Email'])
@@ -213,7 +219,11 @@ def simple_upsert(list, email, member):
   hash = hashlib.md5(email.lower().encode('utf-8')).hexdigest()
   try:
     response = client.lists.get_list_member(list, hash)
-    update(list, hash, member, response)
+    if response['status'] == 'archived':
+      print('was archived')
+      add(list, email, member)
+    else:
+      update(list, hash, member, response)
   except ApiClientError as error:
     add(list, email, member)
 
@@ -274,7 +284,6 @@ with open(sys.argv[1], newline='') as csvfile:
   memberships = {}
   for member in members:
     if member['Area'] not in json.loads(os.environ.get('EXCLUDE')):
-      #if member['GDPR'] == 'false' or member['Status'] == 'Left OGA':
       if member['Status'] == 'Left OGA':
         archive_member(list, member)
       else:
