@@ -174,7 +174,6 @@ def add(list, email, member):
 def same(old, new):
   if json.dumps(old, sort_keys=True) == json.dumps(new, sort_keys=True):
     return True
-  print('changed')
   return False
 
 def same_interests(complete, partial):
@@ -183,6 +182,7 @@ def same_interests(complete, partial):
       if complete[key] != partial[key]:
         return False
     elif complete[key]:
+      partial[key] = False
       return False
     else:
       pass
@@ -209,7 +209,6 @@ def has_changed(old, new):
 
 def update(list, hash, member, old):
   data = build_data(member)
-  om = old['merge_fields']
   if has_changed(old, data) == False:
     if member['Email'] != '':
       print('no change to ', member['Email'])
