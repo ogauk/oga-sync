@@ -7,6 +7,10 @@ import iso3166
 import mailchimp_marketing as MailchimpMarketing
 from mailchimp_marketing.api_client import ApiClientError
 
+excludes = {}
+if  'EXCLUDE' in os.environ:
+  excludes = json.loads(os.environ.get('EXCLUDE'))
+
 audience_data = {}
 
 def address(member):
@@ -283,7 +287,7 @@ with open(sys.argv[1], newline='') as csvfile:
   members = csv.DictReader(csvfile)
   memberships = {}
   for member in members:
-    if member['Area'] not in json.loads(os.environ.get('EXCLUDE')):
+    if member['Area'] not in excludes:
       if member['Status'] == 'Left OGA':
         archive_member(list, member)
       else:
