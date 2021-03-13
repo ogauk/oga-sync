@@ -49,6 +49,11 @@ def address(member):
     if len(x)==2:
       r['state'] = x[0]
       r['zip'] = x[1]
+  elif member['County'] == '' and member['Country'] == 'Australia':
+    x = member['Postcode'].split(' ')
+    if len(x)==2:
+      r['state'] = x[0]
+      r['zip'] = x[1]
   return r
 
 def addAddress(merge_fields, member):
@@ -219,42 +224,43 @@ def update(list, hash, member, old):
     print("Error: {}".format(error.text))
     print("%s\t%s" % (id, member['Lastname']))
 
-def simple_upsert(list, email, member):
+def crud(list, member):
+  good_email = True
+  email = member['Email']
+  if email == '':
+    email = member['ID']+'@oga.org.uk'
+    good_email = False
   hash = hashlib.md5(email.lower().encode('utf-8')).hexdigest()
+  response = { 'status': 'missing' }
   try:
     response = client.lists.get_list_member(list, hash)
-    if response['status'] == 'archived':
+  except ApiClientError as error:
+    pass
+  if member['Status'] == 'Left OGA':
+    if response['status'] == 'missing':
+      print('no change', email)
+    elif response['status'] == 'archived':
+      print('no change', email)
+    else:
+      r = client.lists.delete_list_member(list, hash)
+      print('archive', email)
+  else:
+    if response['status'] == 'missing':
+      add(list, email, member)
+      if good_email: # member might have given us an email
+        dummy = member['ID']+'@oga.org.uk'
+        hash = hashlib.md5(dummy.lower().encode('utf-8')).hexdigest()
+        try:
+          response = client.lists.get_list_member(list, hash)
+          r = client.lists.delete_list_member(list, hash)
+          print('archive', email)
+        except ApiClientError as error:
+          pass
+    elif response['status'] == 'archived':
       print('was archived')
       add(list, email, member)
     else:
       update(list, hash, member, response)
-  except ApiClientError as error:
-    add(list, email, member)
-
-def archive(list, email):
-  hash = hashlib.md5(email.lower().encode('utf-8')).hexdigest()
-  try:
-    r = client.lists.delete_list_member(list, hash)
-    print('archive', email, r)
-  except ApiClientError as error:
-    pass
-
-def archive_member(list, member):
-  email = member['Email']
-  dummy = member['ID']+'@oga.org.uk'
-  if email == '':
-    archive(list, dummy)
-  else:
-    archive(list, email)
-
-def upsert(list, member):
-  email = member['Email']
-  dummy = member['ID']+'@oga.org.uk'
-  if email == '':
-    simple_upsert(list, dummy, member)
-  else:
-    simple_upsert(list, email, member)
-    archive(list, dummy) # member might have given us an email
 
 def getlistid(name):
   r = client.lists.get_all_lists()
@@ -288,27 +294,24 @@ with open(sys.argv[1], newline='') as csvfile:
   memberships = {}
   for member in members:
     if member['Area'] not in excludes:
-      if member['Status'] == 'Left OGA':
-        archive_member(list, member)
+      number = member['Member Number']
+      if number in memberships:
+        memberships[number].append(member)
       else:
-        number = member['Member Number']
-        if number in memberships:
-          memberships[number].append(member)
-        else:
-          memberships[number] = [member]
+        memberships[number] = [member]
   for number in memberships:
     membership = memberships[number]
     if len(membership) == 1:
-      upsert(list, membership[0])
+      crud(list, membership[0])
     else:
       emails = {}
       for member in membership:
         emails[member['Email'].lower()] = True
       if len(emails) == len(membership):
         for member in membership:
-          upsert(list, member)
+          crud(list, member)
       else:
         for member in membership:
           if member['Primary'] == 'false':
             member['Email'] = ''
-          upsert(list, member)
+          crud(list, member)
