@@ -1,5 +1,6 @@
 #!/bin/sh
 bin/getmembers Members.csv
 python3 bin/update.py Members.csv
+python3 bin/archive_absent.py Members.csv
 rm Members.csv
 rm gold
