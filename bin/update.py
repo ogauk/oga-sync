@@ -204,44 +204,51 @@ def add(list, email, member):
       print("%s\t%s" % (member['ID'], member['Lastname']))
 
 def same(old, new):
-  if json.dumps(old, sort_keys=True) == json.dumps(new, sort_keys=True):
-    return True
-  return False
+  for key in new:
+    if old[key] != new[key]:
+        return False, { 'key': key, 'old': old[key], 'new': new[key] }
+  for key in old:
+    if old[key] != new[key]:
+        return False, { 'key': key, 'old': old[key], 'new': new[key] }
+  return True, None
 
 def same_interests(complete, partial):
   for key in complete:
     if key in partial:
       if complete[key] != partial[key]:
-        return False
+        return False, { 'key': key, 'complete': complete, 'partial': partial }
     elif complete[key]:
       partial[key] = False
-      return False
+      return False, key
     else:
       pass
-  return True
+  return True, None
 
 def same_permissions(old, new):
   for p in old:
     for q in new:
       if p['marketing_permission_id'] == q['marketing_permission_id']:
         if p['enabled'] != q['enabled']:
-          return False
-  return True
+          return False, { 'old': old, 'new': new }
+  return True, None
 
 def has_changed(old, new):
-  if same(old['merge_fields'], new['merge_fields']) == False:
-    return True
-  if same_interests(old['interests'], new['interests']) == False:
-    return True
+  s, d = same(old['merge_fields'], new['merge_fields'])
+  if s == False:
+    return True, d
+  s, d = same_interests(old['interests'], new['interests'])
+  if s == False:
+    return True, d
   #if same_permissions(old['marketing_permissions'], new['marketing_permissions']) == False:
   #  print(old['marketing_permissions'])
   #  print(new['marketing_permissions'])
   #  return True
-  return False
+  return False, None
 
 def update(list, hash, member, old):
   data = build_data(member)
-  if has_changed(old, data) == False:
+  c, d = has_changed(old, data)
+  if c == False:
     if member['Email'] != '':
       print('no change to ', member['Email'])
     else:
@@ -250,7 +257,10 @@ def update(list, hash, member, old):
   data['status_if_new'] = 'subscribed'
   try:
     client.lists.set_list_member(list, hash, data)
-    print('updated', member['Email'])
+    if member['Email'] != '':
+      print(f'updated {member["Email"]} with changes {d}')
+    else:
+      print(f'updated member with GOLD ID {member["ID"]} with changes {d}')
   except ApiClientError as error:
     e = json.loads(error.text)
     if e['title'] == 'Invalid Resource':
@@ -331,6 +341,7 @@ try:
     response = client.lists.list_interest_category_interests(list, category['id'])
     group = {}
     for interest in response['interests']:
+      print(interest)
       group[interest['name']] = interest['id']
     audience_data[category['title']] = group
 except ApiClientError as error:
