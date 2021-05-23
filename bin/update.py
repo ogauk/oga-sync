@@ -254,8 +254,20 @@ def update(list, hash, member, old):
     client.lists.set_list_member(list, hash, data)
     print('updated', member['Email'])
   except ApiClientError as error:
-    print("Error: {}".format(error.text))
-    print("%s\t%s" % (id, member['Lastname']))
+    e = json.loads(error.text)
+    if e['title'] == 'Invalid Resource':
+      try:
+        address = data['merge_fields']['ADDRESS']
+        email = member['Email']
+        del data['merge_fields']['ADDRESS']
+        client.lists.set_list_member(list, hash, data)
+        print(f'updated {email} omitting invalid address {address}')
+      except ApiClientError as error:
+        print("Error: {}".format(error.text))
+        print("%s\t%s" % (member['ID'], member['Lastname']))
+    else:
+        print("Error: {}".format(error.text))
+        print("%s\t%s" % (member['ID'], member['Lastname']))
 
 def crud(list, member):
   good_email = True
