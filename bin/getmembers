@@ -1,6 +1,6 @@
 #!/bin/sh
-echo $USER
-echo $PASS
+# echo $USER
+# echo $PASS
 curl -v 'https://oga-gold.org.uk/login.php?operation=logout' \
   -H 'authority: oga-gold.org.uk' \
   -H 'origin: https://oga-gold.org.uk' \
