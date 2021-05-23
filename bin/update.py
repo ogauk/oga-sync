@@ -13,6 +13,21 @@ if  'EXCLUDE' in os.environ:
 
 audience_data = {}
 
+def country(member):
+  if member['Country'] == '':
+    r = 'GB'
+  elif member['Country'] == 'United Kingdom':
+    r = 'GB'
+  elif member['Country'] == 'Eire':
+    r = 'IE'
+  elif len(member['Country']) == 2:
+    r = iso3166.countries_by_alpha2[member['Country'].upper()].alpha2
+  elif len(member['Country']) == 3:
+    r = iso3166.countries_by_alpha3[member['Country'].upper()].alpha2
+  else:
+    r = iso3166.countries_by_name[member['Country'].upper()].alpha2
+  return r
+
 def address(member):
   addr1 = member['Address1'].strip()
   if member['Address2'] != '':
@@ -22,18 +37,6 @@ def address(member):
     r['addr2'] = ''
   else:
     r['addr2'] = member['Address3'].strip()
-  if member['Country'] == '':
-    r['country'] = 'GB'
-  elif member['Country'] == 'United Kingdom':
-    r['country'] = 'GB'
-  elif member['Country'] == 'Eire':
-    r['country'] = 'IE'
-  elif len(member['Country']) == 2:
-    r['country'] = iso3166.countries_by_alpha2[member['Country'].upper()].alpha2
-  elif len(member['Country']) == 3:
-    r['country'] = iso3166.countries_by_alpha3[member['Country'].upper()].alpha2
-  else:
-    r['country'] = iso3166.countries_by_name[member['Country'].upper()].alpha2
   if member['Postcode'] == '' and member['Country'] == 'France':
     x = member['Address2'].split(' ')
     if len(x)==2 and x[0].isnumeric():
@@ -54,14 +57,45 @@ def address(member):
     if len(x)==2:
       r['state'] = x[0]
       r['zip'] = x[1]
+  elif member['Postcode'] == '' and member['Country'] == 'Netherlands':
+    if member['Address3'].strip() != '':
+      r['zip'] = member['Address3'].strip()
+    elif member['Address2'].strip() != '':
+      r['zip'] = member['Address2'].strip()
+  elif member['Postcode'] == '' and member['Country'] == 'Eire':
+    t = member['Town'].split(' ')
+    if len(t) == 2 and t[0] == 'Dublin' and t[1].isnumeric():
+      district = int(t[1])
+      r['zip'] = f"D{district:02d}"
+    else:
+      pass
+  r['country'] = country(member)
   return r
+
+def appendnonblank(l, v):
+  x = v.strip()
+  if x != '':
+    l.append(x)
+
+def address1(member):
+  r = []
+  appendnonblank(r, member['Address1'])
+  appendnonblank(r, member['Address2'])
+  appendnonblank(r, member['Address3'])
+  appendnonblank(r, member['Town'])
+  appendnonblank(r, member['County'])
+  appendnonblank(r, member['Postcode'])
+  r.append(country(member))
+  return '  '.join(r)
 
 def addAddress(merge_fields, member):
   addr = address(member)
   if addr['addr1'] != '' and addr['city'] != '' and addr['zip'] != '':
     merge_fields['ADDRESS'] = addr
   else:
-    merge_fields['ADDRESS'] = ''
+    a = address1(member)
+    print(a)
+    merge_fields['ADDRESS'] = a
 
 def addJoined(merge_fields, member):
   if member['Year Joined'] == '':
@@ -301,8 +335,10 @@ with open(sys.argv[1], newline='') as csvfile:
   for number in memberships:
     membership = memberships[number]
     if len(membership) == 1:
+      print('one member with membership', number)
       crud(list, membership[0])
     else:
+      print('more than one member with membership', number)
       emails = {}
       for member in membership:
         emails[member['Email'].lower()] = True
@@ -310,7 +346,13 @@ with open(sys.argv[1], newline='') as csvfile:
         for member in membership:
           crud(list, member)
       else:
+        print('not every member has a unique email', number)
+        usedEmail = False
         for member in membership:
-          if member['Primary'] == 'false':
+          if usedEmail:
             member['Email'] = ''
+          elif member['Primary'] == 'false':
+            member['Email'] = ''
+          else:
+            usedEmail = True
           crud(list, member)
