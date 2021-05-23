@@ -94,7 +94,6 @@ def addAddress(merge_fields, member):
     merge_fields['ADDRESS'] = addr
   else:
     a = address1(member)
-    print(a)
     merge_fields['ADDRESS'] = a
 
 def addJoined(merge_fields, member):
@@ -185,7 +184,6 @@ def add(list, email, member):
     response = client.lists.add_list_member(list, data)
   except ApiClientError as error:
     e = json.loads(error.text)
-    print(e['title'])
     if e['title'] == 'Invalid Resource':
       print("Error: {}".format(error.text))
       try:
@@ -271,7 +269,8 @@ def update(list, hash, member, old):
 
 def crud(list, member):
   good_email = True
-  email = member['Email']
+  email = member['Email'].strip()
+  member['Email'] = email
   if email == '':
     email = member['ID']+'@oga.org.uk'
     good_email = False
@@ -291,16 +290,19 @@ def crud(list, member):
       print('archive', email)
   else:
     if response['status'] == 'missing':
-      add(list, email, member)
       if good_email: # member might have given us an email
         dummy = member['ID']+'@oga.org.uk'
         hash = hashlib.md5(dummy.lower().encode('utf-8')).hexdigest()
         try:
           response = client.lists.get_list_member(list, hash)
-          r = client.lists.delete_list_member(list, hash)
-          print('archive', email)
+          if response['status'] == 'missing':
+            print(f'dummy {dummy} exists for {email}')
+          else:
+            r = client.lists.delete_list_member(list, hash)
+            print(f'archive {response["status"]} {dummy} and replace with {email}')
         except ApiClientError as error:
           pass
+      add(list, email, member)
     elif response['status'] == 'archived':
       print('was archived')
       add(list, email, member)
@@ -347,10 +349,8 @@ with open(sys.argv[1], newline='') as csvfile:
   for number in memberships:
     membership = memberships[number]
     if len(membership) == 1:
-      print('one member with membership', number)
       crud(list, membership[0])
     else:
-      print('more than one member with membership', number)
       emails = {}
       for member in membership:
         emails[member['Email'].lower()] = True
@@ -358,7 +358,6 @@ with open(sys.argv[1], newline='') as csvfile:
         for member in membership:
           crud(list, member)
       else:
-        print('not every member has a unique email', number)
         usedEmail = False
         for member in membership:
           if usedEmail:
