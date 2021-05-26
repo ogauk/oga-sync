@@ -183,16 +183,20 @@ def search(list, query):
     # print(r['total_items'])
     return r['members']
   except ApiClientError as error:
-    print(f'Error: {error.text}')
+    e = json.loads(error.text)
+    print(f'{e["title"]} searching for {query}')
   return result
 
+def mc_key(email):
+  return hashlib.md5(email.lower().strip().encode('utf-8')).hexdigest()
+
 def delete(list, email):
-  hash = hashlib.md5(email.encode('utf-8')).hexdigest()
   try:
-    r = client.lists.delete_list_member(list, hash)
+    r = client.lists.delete_list_member(list, mc_key(email))
     print('archive', email)
   except ApiClientError as error:
-    print(f'Error: {error.text}')
+    e = json.loads(error.text)
+    print(f'{e["title"]} deleting {email}')
 
 def delete_old_email(list, email, member):
   matches = search(list, f'{member["Firstname"]} {member["Lastname"]}')
@@ -213,19 +217,22 @@ def add(list, email, member):
   except ApiClientError as error:
     e = json.loads(error.text)
     if e['title'] == 'Invalid Resource':
-      print("Error: {}".format(error.text))
+      e = json.loads(error.text)
+      print(f'{e["title"]} adding {member["ID"]} {member["Lastname"]} {email}')
       try:
         address = data['merge_fields']['ADDRESS']
         del data['merge_fields']['ADDRESS']
         response = client.lists.add_list_member(list, data)
         print(f'added {member["Email"]} omitting invalid address {address}')
       except ApiClientError as error:
-        print("Error: {}".format(error.text))
-        print("%s\t%s" % (member['ID'], member['Lastname']))
+        e = json.loads(error.text)
+        print(f'{e["title"]} adding {member["ID"]} {member["Lastname"]} {email}')
         return
+    elif e['title'] == 'Resource Not Found':
+      print(f'{e["title"]} for {member["ID"]} {member["Lastname"]}')
     else:
-      print("Error: {}".format(error.text))
-      print("%s\t%s" % (member['ID'], member['Lastname']))
+      e = json.loads(error.text)
+      print(f'{e["title"]} adding {member["ID"]} {member["Lastname"]} {email}')
       return
   # if we have a new email address for an existing member
   # archive the old record
@@ -272,15 +279,15 @@ def has_changed(old, new):
   #  return True
   return False, None
 
-def update(list, email, member, old):
-  hash = hashlib.md5(email.encode('utf-8')).hexdigest()
+def update(list, email, member, data, changes):
+  hash = mc_key(email)
   data['status_if_new'] = 'subscribed'
   try:
     client.lists.set_list_member(list, hash, data)
     if '@oga.org.uk' in email:
-      print(f'updated member with GOLD ID {member["ID"]} with changes {d}')
+      print(f'updated member with GOLD ID {member["ID"]} with changes {changes}')
     else:
-      print(f'updated {email} with changes {d}')
+      print(f'updated {email} with changes {changes}')
   except ApiClientError as error:
     e = json.loads(error.text)
     if e['title'] == 'Invalid Resource':
@@ -290,17 +297,18 @@ def update(list, email, member, old):
         client.lists.set_list_member(list, hash, data)
         print(f'updated {member["Email"]} omitting invalid address {address}')
       except ApiClientError as error:
-        print("Error: {}".format(error.text))
-        print("%s\t%s" % (member['ID'], member['Lastname']))
+        e = json.loads(error.text)
+        print(f'{e["title"]} for {member["ID"]} {member["Lastname"]}')
+    elif e['title'] == 'Resource Not Found':
+      print(f'{e["title"]} for {member["ID"]} {member["Lastname"]}')
     else:
-        print("Error: {}".format(error.text))
-        print("%s\t%s" % (member['ID'], member['Lastname']))
+      print(f'{e["title"]} for {member["ID"]} {member["Lastname"]}')
 
 def update_if_changed(list, email, member, old):
   data = build_data(member)
-  c, d = has_changed(old, data)
-  if c:
-    update(list, email, member, response)
+  changed, changes = has_changed(old, data)
+  if changed:
+    update(list, email, member, data, changes)
   else:
     if '@oga.org.uk' in email:
       print('no change to member with GOLD ID', member['ID'])
@@ -309,9 +317,8 @@ def update_if_changed(list, email, member, old):
 
 def crud(list, member):
   email = member['Email']
-  hash = hashlib.md5(email.encode('utf-8')).hexdigest()
   try:
-    response = client.lists.get_list_member(list, hash)
+    response = client.lists.get_list_member(list, mc_key(email))
   except ApiClientError as error:
     response = { 'status': 'missing' }
   if response['status'] in ['missing', 'archived']:
@@ -346,13 +353,18 @@ try:
   response = client.lists.get_list_interest_categories(list)
   for category in response['categories']:
     print('collecting', category['title'])
-    response = client.lists.list_interest_category_interests(list, category['id'])
-    group = {}
-    for interest in response['interests']:
-      group[interest['name']] = interest['id']
-    audience_data[category['title']] = group
+    try:
+      response = client.lists.list_interest_category_interests(list, category['id'])
+      group = {}
+      for interest in response['interests']:
+        group[interest['name']] = interest['id']
+      audience_data[category['title']] = group
+    except ApiClientError as error:
+      e = json.loads(error.text)
+      print(f'{e["title"]} getting category {interest["name"]}')
 except ApiClientError as error:
-  print("Error: {}".format(error.text))
+  e = json.loads(error.text)
+  print(f'{e["title"]} getting categories')
 
 with open(sys.argv[1], newline='') as csvfile:
   members = csv.DictReader(csvfile)
