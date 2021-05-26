@@ -25,12 +25,9 @@ list = getlistid(os.environ.get('AUDIENCE'))
 with open(sys.argv[1], newline='') as csvfile:
   members = csv.DictReader(csvfile)
   gold = {}
-  gold_full = {}
   for member in members:
     id = int(member['ID'])
-    gold[id] = member['Email'].strip().lower()
-    gold_full[id] = member
-
+    gold[id] = member
   
 with open('noaddr.csv', 'w', newline='') as csvfile:
   writer = csv.DictWriter(csvfile, fieldnames=members.fieldnames)
@@ -44,26 +41,15 @@ with open('noaddr.csv', 'w', newline='') as csvfile:
       email = r['email_address']
       if gold_id in gold:
         if mf['ADDRESS'] == '':
-          print(mf['GOLD'], mf['FNAME'], mf['LNAME'], mf['MEMBER'], gold_full[gold_id]['Country'])
-          writer.writerow(gold_full[gold_id])
-        if email.lower() == gold[gold_id]:
-          pass
-        elif email == f'{gold_id}@oga.org.uk'
-          if  gold[gold_id] == '':
-            pass
-          else:
-            pass
-        else:
-          print(gold_id, email, gold[gold_id])
-          hash = hashlib.md5(email.lower().encode('utf-8')).hexdigest()
-          try:
-            r = client.lists.delete_list_member(list, hash)
-            print('archive', email)
-          except ApiClientError as error:
-            print('===')
-            print("Error: {}".format(error.text))
-            print(gold_id, email, gold[gold_id])
-            print('===')
-            e = json.loads(error.text)
+          print(mf['GOLD'], mf['FNAME'], mf['LNAME'], mf['MEMBER'], gold[gold_id]['Country'])
+          writer.writerow(gold[gold_id])
       else:
-          print(gold_id, email, 'not in GOLD')
+        print(gold_id, email, 'not in GOLD')
+        hash = hashlib.md5(email.lower().encode('utf-8')).hexdigest()
+        try:
+          r = client.lists.delete_list_member(list, hash)
+          print('archive', email)
+        except ApiClientError as error:
+          print(f'Error: {error.text}')
+          print(gold_id, email, gold[gold_id])
+          e = json.loads(error.text)
