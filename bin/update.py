@@ -175,6 +175,35 @@ def build_data(member):
       #]
     }
 
+def search(list, query):
+  result = []
+  try:
+    response = client.searchMembers.search(query, list_id=list)
+    r = response['full_search']
+    # print(r['total_items'])
+    return r['members']
+  except ApiClientError as error:
+    print(f'Error: {error.text}')
+  return result
+
+def delete(list, email):
+  hash = hashlib.md5(email.encode('utf-8')).hexdigest()
+  try:
+    r = client.lists.delete_list_member(list, hash)
+    print('archive', email)
+  except ApiClientError as error:
+    print(f'Error: {error.text}')
+
+def delete_old_email(list, email, member):
+  matches = search(list, f'{member["Firstname"]} {member["Lastname"]}')
+  id = int(member['ID'])
+  for match in matches:
+    match_id = match['merge_fields']['GOLD']
+    match_email = match['email_address']
+    if match_id == id:
+      if match_email != email:
+        delete(list, match_email)
+
 def add(list, email, member):
   print('add', email)
   data = build_data(member)
@@ -198,18 +227,8 @@ def add(list, email, member):
       print("Error: {}".format(error.text))
       print("%s\t%s" % (member['ID'], member['Lastname']))
       return
-  # check if we have a new email address for an existing member
-  dummy = member['ID']+'@oga.org.uk'
-  hash = hashlib.md5(dummy.lower().encode('utf-8')).hexdigest()
-  try:
-    response = client.lists.get_list_member(list, hash)
-    if response['status'] == 'missing':
-      pass
-    else:
-      r = client.lists.delete_list_member(list, hash)
-      print(f'archive {response["status"]} {dummy} and replace with {email}')
-  except ApiClientError as error:
-    pass
+  # if we have a new email address for an existing member
+  # archive the old record
 
 def same(old, new):
   for key in new:
@@ -253,22 +272,15 @@ def has_changed(old, new):
   #  return True
   return False, None
 
-def update(list, hash, member, old):
-  data = build_data(member)
-  c, d = has_changed(old, data)
-  if c == False:
-    if '@oga.org.uk' in member['Email']:
-      print('no change to member with GOLD ID', member['ID'])
-    else:
-      print('no change to ', member['Email'])
-    return
+def update(list, email, member, old):
+  hash = hashlib.md5(email.encode('utf-8')).hexdigest()
   data['status_if_new'] = 'subscribed'
   try:
     client.lists.set_list_member(list, hash, data)
-    if '@oga.org.uk' in member['Email']:
+    if '@oga.org.uk' in email:
       print(f'updated member with GOLD ID {member["ID"]} with changes {d}')
     else:
-      print(f'updated {member["Email"]} with changes {d}')
+      print(f'updated {email} with changes {d}')
   except ApiClientError as error:
     e = json.loads(error.text)
     if e['title'] == 'Invalid Resource':
@@ -284,6 +296,17 @@ def update(list, hash, member, old):
         print("Error: {}".format(error.text))
         print("%s\t%s" % (member['ID'], member['Lastname']))
 
+def update_if_changed(list, email, member, old):
+  data = build_data(member)
+  c, d = has_changed(old, data)
+  if c:
+    update(list, email, member, response)
+  else:
+    if '@oga.org.uk' in email:
+      print('no change to member with GOLD ID', member['ID'])
+    else:
+      print('no change to', email)
+
 def crud(list, member):
   email = member['Email']
   hash = hashlib.md5(email.encode('utf-8')).hexdigest()
@@ -298,10 +321,11 @@ def crud(list, member):
       add(list, email, member)
   else:
     if member['Status'] == 'Left OGA':
-      r = client.lists.delete_list_member(list, hash)
-      print('archive', email)
+      delete(list, email)
+      print(f'archive {email}')
     else:
-      update(list, hash, member, response)
+      update_if_changed(list, email, member, response)
+  delete_old_email(list, email, member)
 
 def getlistid(name):
   r = client.lists.get_all_lists()
