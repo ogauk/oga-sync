@@ -116,7 +116,11 @@ def add_payment_methods(interests, member):
   elif member['Payment Method'] == '':
     interests[payment_methods['PayPal']] = True
   else:
-    interests[payment_methods[member['Payment Method']]] = True
+    try:
+      interests[payment_methods[member['Payment Method']]] = True
+    except KeyError as error:
+      print(error)
+      print(member)
 
 def add_membership_types(interests, member):
   membership_types = audience_data['Membership Type']
@@ -183,37 +187,48 @@ def search(list, query):
     # print(r['total_items'])
     return r['members']
   except ApiClientError as error:
-    e = json.loads(error.text)
-    print(f'{e["title"]} searching for {query}')
+    try:
+      e = json.loads(error.text)
+      print(f'{e["title"]} searching for {query}')
+    except:
+      print(error)
   return result
 
 def mc_key(email):
   return hashlib.md5(email.lower().strip().encode('utf-8')).hexdigest()
 
+def entries_for_member(list, member):
+  r = []
+  matches = search(list, f'{member["Firstname"]} {member["Lastname"]}')
+  id = int(member['ID'])
+  for match in matches:
+    match_id = match['merge_fields']['GOLD']
+    if match_id == id:
+      r.append(match)
+  return r
+
 def delete(list, email):
   try:
     r = client.lists.delete_list_member(list, mc_key(email))
-    print('archive', email)
+    print('archived', email)
   except ApiClientError as error:
     e = json.loads(error.text)
     print(f'{e["title"]} deleting {email}')
 
 def delete_old_email(list, email, member):
-  matches = search(list, f'{member["Firstname"]} {member["Lastname"]}')
-  id = int(member['ID'])
-  for match in matches:
-    match_id = match['merge_fields']['GOLD']
-    match_email = match['email_address']
-    if match_id == id:
+  matches = entries_for_member(list, member)
+  if len(matches)>1:
+    for match in matches:
+      match_email = match['email_address']
       if match_email != email:
         delete(list, match_email)
 
 def add(list, email, member):
-  print('add', email)
   data = build_data(member)
   data['email_address'] = email
   try:
     response = client.lists.add_list_member(list, data)
+    print('added', email)
   except ApiClientError as error:
     e = json.loads(error.text)
     if e['title'] == 'Invalid Resource':
@@ -233,9 +248,6 @@ def add(list, email, member):
     else:
       e = json.loads(error.text)
       print(f'{e["title"]} adding {member["ID"]} {member["Lastname"]} {email}')
-      return
-  # if we have a new email address for an existing member
-  # archive the old record
 
 def same(old, new):
   for key in new:
@@ -323,7 +335,7 @@ def crud(list, member):
     response = { 'status': 'missing' }
   if response['status'] in ['missing', 'archived']:
     if member['Status'] == 'Left OGA':
-      print('no change', email)
+      print('no change to ex member', email)
     else:
       add(list, email, member)
   else:
@@ -373,6 +385,7 @@ with open(sys.argv[1], newline='') as csvfile:
   for member in members:
     if member['Area'] not in excludes:
       if '@' in member['Email']:
+        member['Email in GOLD'] = member['Email']
         member['Email'] = member['Email'].lower().strip()
       else:
         member['Email'] = member['ID']+'@oga.org.uk'
@@ -399,6 +412,6 @@ with open(sys.argv[1], newline='') as csvfile:
             usedEmail = True
   # update
   for number in memberships:
-      membership = memberships[number]
-      for member in membership:
-          crud(list, member)
+    membership = memberships[number]
+    for member in membership:
+      crud(list, member)
