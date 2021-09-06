@@ -1,2 +1,3 @@
+difflib
 iso3166
 mailchimp_marketing 
