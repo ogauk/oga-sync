@@ -4,6 +4,7 @@ import csv
 import hashlib
 import json
 import iso3166
+import difflib
 import mailchimp_marketing as MailchimpMarketing
 from mailchimp_marketing.api_client import ApiClientError
 
@@ -25,7 +26,16 @@ def country(member):
   elif len(member['Country']) == 3:
     r = iso3166.countries_by_alpha3[member['Country'].upper()].alpha2
   else:
-    r = iso3166.countries_by_name[member['Country'].upper()].alpha2
+    n = member['Country'].upper()
+    if n in iso3166.countries_by_name:
+      r = iso3166.countries_by_name[n].alpha2
+    else:
+      rr = difflib.get_close_matches(n, iso3166.countries_by_name, 5)
+      n0 = n.split(' ')[0].rstrip('S')
+      r = 'GB'
+      for s in rr:
+        if n0 in s:
+          r = iso3166.countries_by_name[s].alpha2
   return r
 
 def address(member):
@@ -383,6 +393,7 @@ with open(sys.argv[1], newline='') as csvfile:
   # group families together
   memberships = {}
   for member in members:
+    print(member)
     if member['Area'] not in excludes:
       if '@' in member['Email']:
         member['Email in GOLD'] = member['Email']
