@@ -12,8 +12,6 @@ excludes = {}
 if  'EXCLUDE' in os.environ:
   excludes = json.loads(os.environ.get('EXCLUDE'))
 
-audience_data = {}
-
 def country(member):
   if member['Country'] == '':
     r = 'GB'
@@ -38,15 +36,18 @@ def country(member):
           r = iso3166.countries_by_name[s].alpha2
   return r
 
+def tidy(s):
+  return ' '.join([x for x in s.split(' ') if x != ''])
+
 def address(member):
-  addr1 = member['Address1'].strip()
+  addr1 = tidy(member['Address1'])
   if member['Address2'] != '':
-    addr1 = addr1 + ', ' + member['Address2'].strip()
-  r = { 'addr1': addr1, 'city': member['Town'].strip(), 'state': member['County'].strip(), 'zip': member['Postcode'].strip() }
+    addr1 = addr1 + ', ' + tidy(member['Address2'])
+  r = { 'addr1': addr1, 'city': tidy(member['Town']), 'state': tidy(member['County']), 'zip': tidy(member['Postcode']) }
   if member['Address3'] == '':
     r['addr2'] = ''
   else:
-    r['addr2'] = member['Address3'].strip()
+    r['addr2'] = tidy(member['Address3'])
   if member['Postcode'] == '' and member['Country'] == 'France':
     x = member['Address2'].split(' ')
     if len(x)==2 and x[0].isnumeric():
@@ -82,21 +83,16 @@ def address(member):
   r['country'] = country(member)
   return r
 
-def appendnonblank(l, v):
-  x = v.strip()
-  if x != '':
-    l.append(x)
-
 def address1(member):
   r = []
-  appendnonblank(r, member['Address1'])
-  appendnonblank(r, member['Address2'])
-  appendnonblank(r, member['Address3'])
-  appendnonblank(r, member['Town'])
-  appendnonblank(r, member['County'])
-  appendnonblank(r, member['Postcode'])
+  r.append(tidy(member['Address1']))
+  r.append(tidy(member['Address2']))
+  r.append(tidy(member['Address3']))
+  r.append(tidy(member['Town']))
+  r.append(tidy(member['County']))
+  r.append(tidy(member['Postcode']))
   r.append(country(member))
-  return '  '.join(r)
+  return ', '.join([word for word in r if word != ''])
 
 def addAddress(merge_fields, member):
   addr = address(member)
@@ -120,17 +116,27 @@ def add_area(interests, member):
     interests[areas[area]] = area == member['Area']
 
 def add_payment_methods(interests, member):
+  global audience_data
+  global list
   payment_methods = audience_data['Payment Method']
-  if member['Payment Method'] == None:
-    interests[payment_methods['PayPal']] = True
-  elif member['Payment Method'] == '':
-    interests[payment_methods['PayPal']] = True
-  else:
-    try:
-      interests[payment_methods[member['Payment Method']]] = True
-    except KeyError as error:
-      print(error)
-      print(member)
+  payment_method = member['Payment Method']
+  if payment_method == None or payment_method == '':
+    payment_method = 'PayPal'
+  if payment_method not in payment_methods.keys():
+    print('missing payment method', payment_method)
+    print(payment_methods)
+    category_id = audience_data['categories']['Payment Method']
+    print(category_id)
+    r = client.lists.create_interest_category_interest(list, category_id, {'name': payment_method})
+    print(r)
+    print('re-fetching audience data')
+    audience_data = get_audience_data(list)
+    payment_methods = audience_data['Payment Method']
+  try:
+    interests[payment_methods[member['Payment Method']]] = True
+  except KeyError as error:
+    print(error)
+    print(member)
 
 def add_membership_types(interests, member):
   membership_types = audience_data['Membership Type']
@@ -362,6 +368,28 @@ def getlistid(name):
     if l['name'] == name:
       return l['id']
 
+def get_audience_data(list):
+  audience_data = {}
+  try:
+    response = client.lists.get_list_interest_categories(list)
+    audience_data['categories'] = {}
+    for category in response['categories']:
+      print('collecting', category['title'])
+      audience_data['categories'][category['title']] = category['id']
+      try:
+        response = client.lists.list_interest_category_interests(list, category['id'])
+        group = {}
+        for interest in response['interests']:
+          group[interest['name']] = interest['id']
+        audience_data[category['title']] = group
+      except ApiClientError as error:
+        e = json.loads(error.text)
+        print(f'{e["title"]} getting category {interest["name"]}')
+  except ApiClientError as error:
+    e = json.loads(error.text)
+    print(f'{e["title"]} getting categories')
+  return audience_data
+
 client = MailchimpMarketing.Client()
 
 client.set_config({
@@ -371,29 +399,14 @@ client.set_config({
 
 list = getlistid(os.environ.get('AUDIENCE'))
 
-try:
-  response = client.lists.get_list_interest_categories(list)
-  for category in response['categories']:
-    print('collecting', category['title'])
-    try:
-      response = client.lists.list_interest_category_interests(list, category['id'])
-      group = {}
-      for interest in response['interests']:
-        group[interest['name']] = interest['id']
-      audience_data[category['title']] = group
-    except ApiClientError as error:
-      e = json.loads(error.text)
-      print(f'{e["title"]} getting category {interest["name"]}')
-except ApiClientError as error:
-  e = json.loads(error.text)
-  print(f'{e["title"]} getting categories')
+audience_data = get_audience_data(list)
 
 with open(sys.argv[1], newline='') as csvfile:
   members = csv.DictReader(csvfile)
   # group families together
   memberships = {}
   for member in members:
-    print(member)
+    # print(member)
     if member['Area'] not in excludes:
       if '@' in member['Email']:
         member['Email in GOLD'] = member['Email']
