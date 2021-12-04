@@ -103,8 +103,14 @@ def addAddress(merge_fields, member):
     merge_fields['ADDRESS'] = addr
   else:
     a = address1(member)
+    print('trying to geolocate', a)
     location = geolocator.geocode(a)
+    if location is None:
+      print('no location found')
+      merge_fields['ADDRESS'] = a
+      return
     coords = f"{location.latitude}, {location.longitude}"
+    print('coords', coords)
     location = geolocator.reverse(coords)
     if 'address' in location.raw and 'postcode' in location.raw['address']:
       postcode = location.raw['address']['postcode']
@@ -113,6 +119,7 @@ def addAddress(merge_fields, member):
       merge_fields['ADDRESS'] = addr
       print(f"member {member['ID']} {member['Email']} might have postcode {postcode}")
     else:
+      print('no postcode found')
       merge_fields['ADDRESS'] = a
 
 def addJoined(merge_fields, member):
