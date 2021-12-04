@@ -7,10 +7,13 @@ import iso3166
 import difflib
 import mailchimp_marketing as MailchimpMarketing
 from mailchimp_marketing.api_client import ApiClientError
+from geopy.geocoders import Nominatim
 
 excludes = {}
 if  'EXCLUDE' in os.environ:
   excludes = json.loads(os.environ.get('EXCLUDE'))
+
+geolocator = Nominatim(user_agent="ogasync")
 
 def country(member):
   if member['Country'] == '':
@@ -100,7 +103,17 @@ def addAddress(merge_fields, member):
     merge_fields['ADDRESS'] = addr
   else:
     a = address1(member)
-    merge_fields['ADDRESS'] = a
+    location = geolocator.geocode(a)
+    coords = f"{location.latitude}, {location.longitude}"
+    location = geolocator.reverse(coords)
+    if 'address' in location.raw and 'postcode' in location.raw['address']:
+      postcode = location.raw['address']['postcode']
+      member['Postcode'] = postcode
+      addr = address(member)
+      merge_fields['ADDRESS'] = addr
+      print(f"member {member['ID']} {member['Email']} might have postcode {postcode}")
+    else:
+      merge_fields['ADDRESS'] = a
 
 def addJoined(merge_fields, member):
   if member['Year Joined'] == '':
