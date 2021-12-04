@@ -51,5 +51,7 @@ with open('noaddr.csv', 'w', newline='') as csvfile:
           print('archive', email)
         except ApiClientError as error:
           print(f'Error: {error.text}')
-          print(gold_id, email, gold[gold_id])
-          e = json.loads(error.text)
+          if gold is not None and gold_id in gold:
+              print(gold_id, email, gold[gold_id])
+          else:
+              print('no gold record, email is', email)
