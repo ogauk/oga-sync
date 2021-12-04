@@ -8,11 +8,13 @@ import difflib
 import mailchimp_marketing as MailchimpMarketing
 from mailchimp_marketing.api_client import ApiClientError
 from geopy.geocoders import Nominatim
+import googlemaps
 
 excludes = {}
 if  'EXCLUDE' in os.environ:
   excludes = json.loads(os.environ.get('EXCLUDE'))
 
+gmaps = googlemaps.Client(key=os.environ['GOOGLE_API_KEY'])
 geolocator = Nominatim(user_agent="ogasync")
 
 def country(member):
@@ -106,9 +108,13 @@ def addAddress(merge_fields, member):
     print('trying to geolocate', a)
     location = geolocator.geocode(a)
     if location is None:
-      print('no location found')
-      merge_fields['ADDRESS'] = a
-      return
+      print('no location found, try Google')
+      geocode_result = gmaps.geocode(a)
+      glocation = geocode_result[0]['geometry']['location']
+      if glocation is None:
+        merge_fields['ADDRESS'] = a
+        return
+      coords = f"{glocation['lat']}, {glocation['lng']}"
     coords = f"{location.latitude}, {location.longitude}"
     print('coords', coords)
     location = geolocator.reverse(coords)
