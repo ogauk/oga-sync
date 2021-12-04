@@ -115,7 +115,8 @@ def addAddress(merge_fields, member):
         merge_fields['ADDRESS'] = a
         return
       coords = f"{glocation['lat']}, {glocation['lng']}"
-    coords = f"{location.latitude}, {location.longitude}"
+    else:
+      coords = f"{location.latitude}, {location.longitude}"
     print('coords', coords)
     location = geolocator.reverse(coords)
     if 'address' in location.raw and 'postcode' in location.raw['address']:
