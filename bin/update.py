@@ -200,7 +200,6 @@ def search(list, query):
   try:
     response = client.searchMembers.search(query, list_id=list)
     r = response['full_search']
-    # print(r['total_items'])
     return r['members']
   except ApiClientError as error:
     try:
@@ -406,7 +405,6 @@ with open(sys.argv[1], newline='') as csvfile:
   # group families together
   memberships = {}
   for member in members:
-    # print(member)
     if member['Area'] not in excludes:
       if '@' in member['Email']:
         member['Email in GOLD'] = member['Email']
