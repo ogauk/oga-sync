@@ -204,22 +204,17 @@ def build_data(member):
         'MOBILE': member['Mobile'],
         'MEMBER': int(member['Member Number']),
         'REASON': member['Reason For Joining'],
-        'GOLD': int(member['ID'])
+        'GOLD': int(member['ID']),
+        'GDPR': member['GDPR']
     }
     if merge_fields['REASON'] == None:
       merge_fields['REASON'] = ''
     addAddress(merge_fields, member),
     addJoined(merge_fields, member),
-    gdpr = member['GDPR'] == 'true' # TODO more fine grained
     return {
       "status": "subscribed",
       "merge_fields": merge_fields,
       "interests": interests,
-      #"marketing_permissions": [
-      #  {'marketing_permission_id': '4b8ac61884', 'enabled': gdpr},
-      #  {'marketing_permission_id': 'b48f96106f', 'enabled': gdpr},
-      #  {'marketing_permission_id': '12f8e21b1c', 'enabled': gdpr}
-      #]
     }
 
 def search(list, query):

@@ -1,3 +1,4 @@
+pysqlcipher3
 iso3166
 mailchimp_marketing 
 geopy

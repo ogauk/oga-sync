@@ -74,6 +74,7 @@ def create_merge_fields(list):
   response = client.lists.add_list_merge_field(list, {"name": "Mobile", "tag": "MOBILE", "type": "phone"})
   response = client.lists.add_list_merge_field(list, {"name": "Member Number", "tag": "MEMBER", "type": "number"})
   response = client.lists.add_list_merge_field(list, {"name": "ID", "tag": "GOLD", "type": "number"})
+  response = client.lists.add_list_merge_field(list, {"name": "GDPR", "tag": "GDPR", "type": "text"})
 
 try:
   list = getlistid(os.environ.get('AUDIENCE'))
