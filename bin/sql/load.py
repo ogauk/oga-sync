@@ -34,7 +34,6 @@ with open(sys.argv[1], newline='') as csvfile:
   members = csv.DictReader(csvfile)
   for member in members:
     values = '", "'.join([strip_tags(s).replace('"', '') for s in member.values()])
-    print(values)
     cur.execute(f'insert into gold values ("{values}")')
 conn.commit()
 cur.close()

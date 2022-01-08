@@ -1,3 +1,9 @@
+
+
+
+
+
+
 import os
 import sys
 import csv
@@ -9,6 +15,7 @@ import mailchimp_marketing as MailchimpMarketing
 from mailchimp_marketing.api_client import ApiClientError
 from geopy.geocoders import Nominatim
 import googlemaps
+from pysqlcipher3 import dbapi2 as sqlite
 
 excludes = {}
 if  'EXCLUDE' in os.environ:
@@ -422,40 +429,59 @@ list = getlistid(os.environ.get('AUDIENCE'))
 
 audience_data = get_audience_data(list)
 
-with open(sys.argv[1], newline='') as csvfile:
-  members = csv.DictReader(csvfile)
-  # group families together
-  memberships = {}
-  for member in members:
-    if member['Area'] not in excludes:
-      if '@' in member['Email']:
-        member['Email in GOLD'] = member['Email']
-        member['Email'] = member['Email'].lower().strip()
-      else:
-        member['Email'] = member['ID']+'@oga.org.uk'
-      number = member['Member Number']
-      if number in memberships:
-        memberships[number].append(member)
-      else:
-        memberships[number] = [member]
-  # make emails unique within a family
-  for number in memberships:
-    membership = memberships[number]
-    if len(membership) > 1:
-      emails = {}
-      for member in membership:
-        emails[member['Email']] = True
-      if len(emails) < len(membership):
-        usedEmail = False
-        for member in membership:
-          if usedEmail:
-            member['Email'] = member['ID']+'@oga.org.uk'
-          elif member['Primary'] == 'false':
-            member['Email'] = member['ID']+'@oga.org.uk'
-          else:
-            usedEmail = True
-  # update
-  for number in memberships:
-    membership = memberships[number]
+if 'SPASS' in os.environ:
+    print('using sql')
+    conn = sqlite.connect('gold.db')
+    cur = conn.cursor()
+    cur.execute(f"PRAGMA key='{os.environ['SPASS']}'")
+    cur.execute("SELECT name FROM PRAGMA_TABLE_INFO('gold')")
+    cols = cur.fetchall()
+    cur.execute("SELECT * FROM gold")
+    rows = cur.fetchall()
+    members = []
+    for row in rows:
+        member = dict()
+        for i in range((len(row))):
+            member[cols[i][0]] = row[i]
+        members.append(member)
+    cur.close()
+else:
+    print('using csv')
+    with open(sys.argv[1], newline='') as csvfile:
+        members = csv.DictReader(csvfile)
+
+# group families together
+memberships = {}
+for member in members:
+  if member['Area'] not in excludes:
+    if '@' in member['Email']:
+      member['Email in GOLD'] = member['Email']
+      member['Email'] = member['Email'].lower().strip()
+    else:
+      member['Email'] = member['ID']+'@oga.org.uk'
+    number = member['Member Number']
+    if number in memberships:
+      memberships[number].append(member)
+    else:
+      memberships[number] = [member]
+# make emails unique within a family
+for number in memberships:
+  membership = memberships[number]
+  if len(membership) > 1:
+    emails = {}
     for member in membership:
-      crud(list, member)
+      emails[member['Email']] = True
+    if len(emails) < len(membership):
+      usedEmail = False
+      for member in membership:
+        if usedEmail:
+          member['Email'] = member['ID']+'@oga.org.uk'
+        elif member['Primary'] == 'false':
+          member['Email'] = member['ID']+'@oga.org.uk'
+        else:
+          usedEmail = True
+# update
+for number in memberships:
+  membership = memberships[number]
+  for member in membership:
+    crud(list, member)

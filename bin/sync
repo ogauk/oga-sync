@@ -1,5 +1,8 @@
 #!/bin/sh
 bin/getmembers Members.csv
+rm -f gold.db
+bin/sql/create.py Members.csv
+bin/sql/load.py Members.csv
 python3 bin/update.py Members.csv
 python3 bin/archive_absent.py Members.csv
 rm Members.csv
