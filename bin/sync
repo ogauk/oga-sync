@@ -1,9 +1,10 @@
 #!/bin/sh
 bin/getmembers Members.csv
 rm -f gold.db
-bin/sql/create.py Members.csv
-bin/sql/load.py Members.csv
-python3 bin/update.py Members.csv
-python3 bin/archive_absent.py Members.csv
-rm Members.csv
+python3 bin/mailchimp/update.py Members.csv
+python3 bin/mailchimp/archive_absent.py Members.csv
+python3 bin/airtable/split.py Members.csv lower.csv upper.csv
+python3 bin/airtable/update.py lower.csv
+python3 bin/airtable/update.py upper.csv
+rm Members.csv lower.csv upper.csv
 rm gold
