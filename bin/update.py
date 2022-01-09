@@ -1,9 +1,3 @@
-
-
-
-
-
-
 import os
 import sys
 import csv
@@ -15,7 +9,6 @@ import mailchimp_marketing as MailchimpMarketing
 from mailchimp_marketing.api_client import ApiClientError
 from geopy.geocoders import Nominatim
 import googlemaps
-from pysqlcipher3 import dbapi2 as sqlite
 
 excludes = {}
 if  'EXCLUDE' in os.environ:
@@ -429,26 +422,12 @@ list = getlistid(os.environ.get('AUDIENCE'))
 
 audience_data = get_audience_data(list)
 
-if 'SPASS' in os.environ:
-    print('using sql')
-    conn = sqlite.connect('gold.db')
-    cur = conn.cursor()
-    cur.execute(f"PRAGMA key='{os.environ['SPASS']}'")
-    cur.execute("SELECT name FROM PRAGMA_TABLE_INFO('gold')")
-    cols = cur.fetchall()
-    cur.execute("SELECT * FROM gold")
-    rows = cur.fetchall()
-    members = []
-    for row in rows:
-        member = dict()
-        for i in range((len(row))):
-            member[cols[i][0]] = row[i]
+members = []
+print('using csv')
+with open(sys.argv[1], newline='') as csvfile:
+    m = csv.DictReader(csvfile)
+    for member in m:
         members.append(member)
-    cur.close()
-else:
-    print('using csv')
-    with open(sys.argv[1], newline='') as csvfile:
-        members = csv.DictReader(csvfile)
 
 # group families together
 memberships = {}
