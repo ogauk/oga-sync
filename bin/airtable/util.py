@@ -20,7 +20,7 @@ def convert(record):
       if record[key]=='true':
         result[key]=True
     elif record[key] != '':
-      val = record[key].replace('\r', '').replace(' \n', '\n').rstrip(' ')
+      val = record[key].replace('\r', '').replace(' \n', '\n').strip(' ')
       if val != '':
         result[key] = val
  return result

@@ -10,11 +10,11 @@ def write(filename, data):
         for member in data:
             writer.writerow(member)
 
-with open(sys.argv[2], newline='') as csvfile:
+with open(sys.argv[1], newline='') as csvfile:
     members = csv.DictReader(csvfile)
     lower = []
     upper = []
-    split = int(os.environ["AIRTABLE_SPLIT"]
+    split = int(os.environ["AIRTABLE_SPLIT"])
     total = 0
     for member in members:
       total = total + 1
@@ -24,5 +24,5 @@ with open(sys.argv[2], newline='') as csvfile:
       else:
           upper.append(member)
     print(f"total {total} lower {len(lower)} upper {len(upper)} check {total==(len(lower)+len(upper))}")
-    write(sys.argv[3], lower)
-    write(sys.argv[[4], upper)
+    write(sys.argv[2], lower)
+    write(sys.argv[3], upper)

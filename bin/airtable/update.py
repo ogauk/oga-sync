@@ -21,12 +21,6 @@ def show_diff(existing, incoming):
         else:
           print(f"{repr(inc[i])}")
 
-def update_one(existing, incoming):
-  pass
-
-def create_one(incoming):
-  pass
-
 def update(members):
     member_number = int(members[0]['Member Number'])
     table = Table(api_key, table_id(member_number), 'Members')
@@ -35,17 +29,24 @@ def update(members):
     for member in members:
       id = int(member['ID'])
       converted = convert(member)
-      if id in existing_by_id:
+      try:
+        if id in existing_by_id:
           existing = existing_by_id[id]['fields']
           if existing == converted:
-              print('no change for ', id)
+              pass
+              #print('no change for ', id)
           else:
               print(id, 'needs update')
-              show_diff(existing, converted)
-              update_one(existing, converted)
-      else:
+              #show_diff(existing, converted)
+              r = table.update(existing_by_id[id]['id'], converted)
+              print(r)
+        else:
           print('new', member['ID'])
-          create_one(converted)
+          table.create(converted)
+      except Exception as e:
+          print(type(e))
+          print(e.args)
+          print(converted)
 
 if __name__ == "__main__":
     with open(sys.argv[1], newline='') as csvfile:
