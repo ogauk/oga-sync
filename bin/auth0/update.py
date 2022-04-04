@@ -2,11 +2,37 @@ import requests
 import sys
 import csv
 import json
+import http.client
+import os
 
-headers = { 'authorization': "Bearer XXX" }
+auth0_domain = os.environ['AUTH0_DOMAIN']
+
+conn = http.client.HTTPSConnection(auth0_domain)
+
+payload = {
+  "client_id": os.environ['AUTH0_CLIENT_ID'],
+  "client_secret": os.environ['AUTH0_CLIENT_SECRET'],
+  "audience": f"https://{auth0_domain}/api/v2/",
+  "grant_type": "client_credentials"
+}
+
+headers = { 'content-type': "application/json" }
+
+#r = requests.post(f"https://{auth0_domain}/oath/token", json=payload, headers=headers)
+#print(r.json)
+conn.request("POST", "/oauth/token", json.dumps(payload), headers)
+res = conn.getresponse()
+data = res.read()
+token = json.loads(data.decode("utf-8"))
+access_token = token['access_token']
+
+headers = { 'authorization': f"Bearer {access_token}" }
 
 def getMemberRole():
-  r = requests.get('https://dev-uf87e942.eu.auth0.com/api/v2/roles', headers=headers)
+  r = requests.get(f"https://{auth0_domain}/api/v2/roles", headers=headers)
+  if not r.ok:
+    print(r)
+    return None
   roles = r.json()
   users = []
   for role in roles:
@@ -16,6 +42,7 @@ def getMemberRole():
 member_role_id = getMemberRole()
 
 def update(member, auth0):
+    base_url = f"https://{auth0_domain}/api/v2/users"
     print('checking for update', member['Email'])
     patch = {}
     if 'app_metadata' in auth0:
@@ -57,12 +84,12 @@ def update(member, auth0):
             patch['given_name'] = member['Firstname']
     if patch:
         print(f"patching {auth0['user_id']} with {patch}")
-        url = f"https://dev-uf87e942.eu.auth0.com/api/v2/users/{auth0['user_id']}"
+        url = f"{base_url}/{auth0['user_id']}"
         r = requests.patch(url, headers=headers, json=patch)
         #print(r.json())
     print(member['Status'], member['Firstname'], member['Lastname'])
     if member['Status'] != 'Left OGA':
-        url = f"https://dev-uf87e942.eu.auth0.com/api/v2/users/{auth0['user_id']}/roles"
+        url = f"{base_url}/{auth0['user_id']}/roles"
         r = requests.get(url, headers=headers)
         roles = set([ro['id'] for ro in r.json()])
         if member_role_id not in roles:
@@ -76,7 +103,7 @@ def checkByName(member):
     family_name = member['Lastname'].replace('-', '*')
     if given_name.strip() == '' or family_name.strip() == '':
       return
-    url = f"https://dev-uf87e942.eu.auth0.com/api/v2/users?q=given_name:{given_name} AND family_name:{family_name}"
+    url = f"https://{auth0_domain}/api/v2/users?q=given_name:{given_name} AND family_name:{family_name}"
     r = requests.get(url, headers=headers)
     a0 = r.json()
     print(a0)
@@ -84,11 +111,11 @@ def checkByName(member):
         update(member, a0[0])
 
 def getUsersWithRole(role_id):
-  r = requests.get(f"https://dev-uf87e942.eu.auth0.com/api/v2/roles/{role_id}/users", headers=headers, params={'take': 60})
+  r = requests.get(f"https://{auth0_domain}/api/v2/roles/{role_id}/users", headers=headers, params={'take': 60})
   data = r.json()
   while 'next' in data:
     users.extend(data['users'])
-    r = requests.get(f"https://dev-uf87e942.eu.auth0.com/api/v2/roles/{role_id}/users", headers=headers, params={'take': 60, 'from': data['next']})
+    r = requests.get(f"https://{auth0_domain}/api/v2/roles/{role_id}/users", headers=headers, params={'take': 60, 'from': data['next']})
     data = r.json()
   users.extend(data['users'])
   print(len(users))
@@ -103,8 +130,8 @@ for member in members:
     email = member['Email']
     if '@' in email:
         r = requests.get(
-          f"https://dev-uf87e942.eu.auth0.com/api/v2/users?q=email:{email}",
-          # f"https://dev-uf87e942.eu.auth0.com/api/v2/users-by-email?email={email}",
+          f"https://{auth0_domain}/api/v2/users?q=email:{email}",
+          # f"https://{auth0_domain}/api/v2/users-by-email?email={email}",
           headers=headers
         )
         a0 = r.json()
