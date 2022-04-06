@@ -51,4 +51,5 @@ def update(members):
 if __name__ == "__main__":
     with open(sys.argv[1], newline='') as csvfile:
         members = csv.DictReader(csvfile)
-        update(list(members))
+        if len(members) > 0:
+            update(list(members))
