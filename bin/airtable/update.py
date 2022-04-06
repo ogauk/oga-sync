@@ -22,7 +22,10 @@ def show_diff(existing, incoming):
           print(f"{repr(inc[i])}")
 
 def update(members):
-    member_number = int(members[0]['Member Number'])
+    try:
+      member_number = int(members[0]['Member Number'])
+    except:
+      return
     table = Table(api_key, table_id(member_number), 'Members')
     t = table.all()
     existing_by_id = {m['fields']['ID']: m for m in t}
@@ -51,5 +54,4 @@ def update(members):
 if __name__ == "__main__":
     with open(sys.argv[1], newline='') as csvfile:
         members = csv.DictReader(csvfile)
-        if len(members) > 0:
-            update(list(members))
+        update(list(members))
