@@ -24,5 +24,7 @@ with open(sys.argv[1], newline='') as csvfile:
       else:
           upper.append(member)
     print(f"total {total} lower {len(lower)} upper {len(upper)} check {total==(len(lower)+len(upper))}")
-    write(sys.argv[2], lower)
-    write(sys.argv[3], upper)
+    if len(lower) > 0:
+        write(sys.argv[2], lower)
+    if len(upper) > 0:
+        write(sys.argv[3], upper)
