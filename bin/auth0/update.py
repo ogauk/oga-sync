@@ -4,6 +4,7 @@ import csv
 import json
 import http.client
 import os
+import time
 
 auth0_domain = os.environ['AUTH0_DOMAIN']
 
@@ -106,8 +107,8 @@ def checkByName(member):
     url = f"https://{auth0_domain}/api/v2/users?q=given_name:{given_name} AND family_name:{family_name}"
     r = requests.get(url, headers=headers)
     a0 = r.json()
-    print(a0)
-    if len(a0) > 0:
+    print('check by name', a0)
+    if isinstance(a0, (list)) and len(a0) > 0:
         update(member, a0[0])
 
 def getUsersWithRole(role_id):
@@ -128,18 +129,21 @@ with open(sys.argv[1], newline='') as csvfile:
         members.append(member)
 for member in members:
     email = member['Email']
+    print(email)
     if '@' in email:
         r = requests.get(
-          f"https://{auth0_domain}/api/v2/users?q=email:{email}",
-          # f"https://{auth0_domain}/api/v2/users-by-email?email={email}",
-          headers=headers
+            f"https://{auth0_domain}/api/v2/users?q=email:{email}",
+            headers=headers
         )
         a0 = r.json()
-        if len(a0) == 0:
-            pass
-            #checkByName(member)
-        else:
+        print(a0)
+        if isinstance(a0, (list)) and len(a0) > 0:
             update(member, a0[0])
+        elif isinstance(a0, (dict)) and a0['statusCode'] >= 400:
+            print(a0)
+            time.sleep(10)
+        else:
+            checkByName(member)
     else:
         pass
         #checkByName(member)
