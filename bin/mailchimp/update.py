@@ -10,6 +10,19 @@ from mailchimp_marketing.api_client import ApiClientError
 from geopy.geocoders import Nominatim
 import googlemaps
 
+AreaMap = {
+'BC': 'Bristol Channel',
+'DB': 'Dublin Bay',
+'EC': 'East Coast',
+'NE': 'North East',
+'NWa': 'North Wales',
+'NW': 'North West',
+'NI': 'Northern Ireland',
+'SC': 'Scotland',
+'SO': 'Solent',
+'SW': 'South West',
+}
+
 excludes = {}
 if  'EXCLUDE' in os.environ:
   excludes = json.loads(os.environ.get('EXCLUDE'))
@@ -139,8 +152,10 @@ def addJoined(merge_fields, member):
 
 def add_area(interests, member):
   areas = audience_data['Area']
+  ia = set([AreaMap[a] for a in member['Interest Areas'].split(',')])
+  ia.add(member['Area'])
   for area in areas:
-    interests[areas[area]] = area == member['Area']
+    interests[areas[area]] = area in ia
 
 def add_payment_methods(interests, member):
   global audience_data
