@@ -152,7 +152,10 @@ def addJoined(merge_fields, member):
 
 def add_area(interests, member):
   areas = audience_data['Area']
-  ia = set([AreaMap[a] for a in member['Interest Areas'].split(',')])
+  if member['Interest Areas'].strip() == '':
+    ia = set()
+  else:
+    ia = set([AreaMap[a] for a in member['Interest Areas'].split(',')])
   ia.add(member['Area'])
   for area in areas:
     interests[areas[area]] = area in ia
