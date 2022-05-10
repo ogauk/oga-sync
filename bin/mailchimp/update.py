@@ -184,7 +184,6 @@ def add_payment_methods(interests, member):
     print(member)
 
 def add_membership_types(interests, member):
-  print('add_membership', member['Firstname'], member['Lastname'], member['Membership Type'])
   membership_types = audience_data['Membership Type']
   if member['Membership Type'] == None:
     interests[membership_types['Single']] = True
