@@ -164,6 +164,8 @@ def add_payment_methods(interests, member):
   global audience_data
   global list
   payment_methods = audience_data['Payment Method']
+  for k,v in payment_methods.items():
+    interests[v] = False
   payment_method = member['Payment Method']
   if payment_method == None or payment_method == '':
     payment_method = 'PayPal'
@@ -171,12 +173,12 @@ def add_payment_methods(interests, member):
     print('missing payment method', payment_method)
     print(payment_methods)
     category_id = audience_data['categories']['Payment Method']
-    print(category_id)
     r = client.lists.create_interest_category_interest(list, category_id, {'name': payment_method})
-    print(r)
     print('re-fetching audience data')
     audience_data = get_audience_data(list)
     payment_methods = audience_data['Payment Method']
+    for k,v in payment_methods.items():
+      interests[v] = False
   try:
     interests[payment_methods[member['Payment Method']]] = True
   except KeyError as error:
