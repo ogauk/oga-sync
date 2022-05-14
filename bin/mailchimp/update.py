@@ -116,31 +116,26 @@ def addAddress(merge_fields, member):
   addr = address(member)
   if addr['addr1'] != '' and addr['city'] != '' and addr['zip'] != '':
     merge_fields['ADDRESS'] = addr
+    return
+  if addr['zip'] != '':
+    a = addr['zip']
   else:
     a = address1(member)
-    print('trying to geolocate', a)
-    location = geolocator.geocode(a)
-    if location is None:
-      print('no location found, try Google')
-      geocode_result = gmaps.geocode(a)
-      glocation = geocode_result[0]['geometry']['location']
-      if glocation is None:
-        merge_fields['ADDRESS'] = a
-        return
-      coords = f"{glocation['lat']}, {glocation['lng']}"
-    else:
-      coords = f"{location.latitude}, {location.longitude}"
-    print('coords', coords)
-    location = geolocator.reverse(coords)
-    if 'address' in location.raw and 'postcode' in location.raw['address']:
-      postcode = location.raw['address']['postcode']
-      member['Postcode'] = postcode
-      addr = address(member)
-      merge_fields['ADDRESS'] = addr
-      print(f"member {member['ID']} {member['Email']} might have postcode {postcode}")
-    else:
-      print('no postcode found')
-      merge_fields['ADDRESS'] = a
+  location = geolocator.geocode(a, addressdetails=True)
+  if location is None:
+    print('no location found')
+    merge_fields['ADDRESS'] = a
+  else:
+    print('augmented address')
+    retrieved_address = location.raw['address']
+    if addr['zip'] == '':
+      member['Postcode'] = retrieved_address['postcode']
+    if addr['city'] == '':
+      if 'city' in retrieved_address:
+        member['Town'] = retrieved_address['city']
+      elif 'suburb' in retrieved_address:
+        member['Town'] = retrieved_address['suburb']
+    merge_fields['ADDRESS'] = address(member)
 
 def addJoined(merge_fields, member):
   if member['Year Joined'] == '':
@@ -362,7 +357,11 @@ def update(list, email, member, data, changes):
     else:
       print(f'updated {email} with changes {changes}')
   except ApiClientError as error:
-    e = json.loads(error.text)
+    try:
+      e = json.loads(error.text)
+    except:
+      print('can\'t parse error', error)
+      e = {'title': 'no idea'}
     if e['title'] == 'Invalid Resource':
       try:
         address = data['merge_fields']['ADDRESS']
