@@ -128,7 +128,7 @@ def addAddress(merge_fields, member):
   else:
     print('augmented address')
     retrieved_address = location.raw['address']
-    if addr['zip'] == '':
+    if addr['zip'] == '' and 'postcode' in retrieved_address:
       member['Postcode'] = retrieved_address['postcode']
     if addr['city'] == '':
       if 'city' in retrieved_address:
