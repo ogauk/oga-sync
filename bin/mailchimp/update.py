@@ -289,7 +289,7 @@ def add(list, email, member):
     e = json.loads(error.text)
     if e['title'] == 'Invalid Resource':
       e = json.loads(error.text)
-      print(f'{e["title"]} adding {member["ID"]} {member["Lastname"]} {email}')
+      print(f'{e["title"]} adding {member["ID"]} {member["Lastname"]} {email}, {e["detail"]}')
       try:
         address = data['merge_fields']['ADDRESS']
         del data['merge_fields']['ADDRESS']
